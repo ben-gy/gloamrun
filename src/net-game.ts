@@ -30,8 +30,8 @@
 import { Game, HERO_R } from './game';
 import { botIntent, botPick } from './bot';
 import { draftFor, upgradeOf } from './upgrades';
-import { makeRng, type Rng } from './engine/rng';
-import type { Net, PeerId } from './engine/net';
+import { makeRng, type Rng } from '@ben-gy/game-engine/rng';
+import type { Net, PeerId } from '@ben-gy/game-engine/net';
 
 const DASH_SPEED = 520;
 

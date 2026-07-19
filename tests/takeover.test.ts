@@ -22,7 +22,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createSession, type SessionSeat } from '../src/net-game';
 import { Game, type Seat } from '../src/game';
 import { MODES } from '../src/modes';
-import type { Net, PeerId } from '../src/engine/net';
+import type { Net, PeerId } from '@ben-gy/game-engine/net';
 
 function silentNet(selfId: PeerId, host: PeerId | null, sent?: Record<string, unknown[]>): Net {
   return {
@@ -31,7 +31,24 @@ function silentNet(selfId: PeerId, host: PeerId | null, sent?: Record<string, un
     host: () => host,
     isHost: () => host === selfId,
     hostSettled: () => host !== null,
+    hostEpoch: () => (host === null ? 0 : 1),
     count: () => 1,
+    // A silent net has a roster of exactly one and it never moves, so there is
+    // nothing to announce — but the subscription still has to hand back a real
+    // unsubscribe, because the engine calls it on destroy().
+    onPeersChange: () => () => {},
+    takeover: () => {
+      /* nothing to take: this net has no peers to be elected over */
+    },
+    netDiag: () => ({
+      selfId,
+      host,
+      epoch: host === null ? 0 : 1,
+      settled: host !== null,
+      peers: [selfId],
+      relaySockets: {},
+      turn: false,
+    }),
     channel: <T>(name: string) => {
       const send = ((d: T) => {
         if (sent) (sent[name] ??= []).push(d);

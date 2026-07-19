@@ -22,7 +22,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Net } from '../src/engine/net';
+import type { Net } from '@ben-gy/game-engine/net';
 
 interface Wire {
   peers: Map<string, Room>;
@@ -109,7 +109,7 @@ async function peer(id: string, opts: { claimHost?: boolean } = {}): Promise<Net
       return room;
     },
   }));
-  const mod = await import('../src/engine/net');
+  const mod = await import('@ben-gy/game-engine/net');
   return mod.createNet({ appId: 'gloamrun', roomId: 'R', claimHost: opts.claimHost });
 }
 
@@ -186,13 +186,18 @@ describe('host election — nobody hosts a mesh that has not formed', () => {
     connect('a', 'b');
     // Neither claimed (both arrived via a link into an empty room). They must
     // not deadlock waiting for an incumbent that does not exist.
-    vi.advanceTimersByTime(2600);
+    //
+    // The settle window is 6s (net.ts SETTLE_MS), not the old 2.5s: Nostr
+    // discovery plus ICE on mobile routinely overran 2.5s, and a joiner that
+    // gave up that early self-elected on a roster of one and then stole the
+    // live room it finally met. Waiting longer here is the fix, not a slower test.
+    vi.advanceTimersByTime(6100);
     expect(a.isHost()).toBe(true); // min-id, agreed by both
     expect(b.isHost()).toBe(false);
     expect(b.host()).toBe('a');
   });
 
-  it('settles the creator immediately so "Create a room" is not a 2.5s wait', async () => {
+  it('settles the creator immediately so "Create a room" is not a 6s wait', async () => {
     const host = await peer('z', { claimHost: true });
     expect(host.hostSettled()).toBe(true);
     expect(host.isHost()).toBe(true);

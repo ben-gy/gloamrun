@@ -16,7 +16,7 @@
  * desync in a co-op sim is the whole party disagreeing about the swarm.
  */
 
-import { makeRng, randInt, randFloat, type Rng } from './engine/rng';
+import { makeRng, randInt, randFloat, type Rng } from '@ben-gy/game-engine/rng';
 import { baseStats, type HeroStats } from './upgrades';
 import { tuning } from './tuning';
 import type { Mode } from './modes';
