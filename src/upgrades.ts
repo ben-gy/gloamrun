@@ -12,7 +12,7 @@
  * no branching.
  */
 
-import { makeRng, type Rng } from './engine/rng';
+import { makeRng, type Rng } from '@ben-gy/game-engine/rng';
 
 /** The tunable half of a hero — everything the draft moves. */
 export interface HeroStats {

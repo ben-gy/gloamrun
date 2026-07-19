@@ -373,6 +373,19 @@ button {
 .lobby-badge.ok {
   color: var(--ok);
 }
+/* The beat between tapping a room code and the mesh existing, while the TURN
+   credential lands. Usually invisible — it is session-cached — but it must not
+   look like a blank screen on the one boot that has to fetch it. */
+.connecting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 40vh;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .lobby-searching,
 .lobby-wait {
   display: flex;

@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { makeRng, hashSeed, randInt, shuffle, pick } from '../src/engine/rng';
+import { makeRng, hashSeed, randInt, shuffle, pick } from '@ben-gy/game-engine/rng';
 import { Game, type Seat } from '../src/game';
 import { MODES } from '../src/modes';
 

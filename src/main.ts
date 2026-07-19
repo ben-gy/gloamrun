@@ -33,24 +33,39 @@ import {
   shareText,
   type MatchTally,
 } from './results';
-import { createInput, type Input } from './engine/input';
-import { createStore } from './engine/storage';
-import { createNet, type Net } from './engine/net';
-import { createRounds, type Rounds } from './engine/rematch';
-import { resolveName, withName } from './engine/identity';
-import { hardenViewport } from './engine/mobile';
+import { createInput, type Input } from '@ben-gy/game-engine/input';
+import { createStore } from '@ben-gy/game-engine/storage';
+import { createNet, roomAppId, setTurnConfig, type Net } from '@ben-gy/game-engine/net';
+import { getTurnConfig } from '@ben-gy/game-engine/turn';
+import { createRounds, type Rounds } from '@ben-gy/game-engine/rematch';
+import { resolveName, withName } from '@ben-gy/game-engine/identity';
+import { hardenViewport } from '@ben-gy/game-engine/mobile';
 import {
   createLobby,
   createRoomEntry,
   normalizeRoomCode,
   clearRoomInUrl,
   setRoomInUrl,
-} from './engine/lobby';
-import { newSeed } from './engine/rng';
+} from '@ben-gy/game-engine/lobby';
+import { newSeed } from '@ben-gy/game-engine/rng';
 
 hardenViewport();
 
-const store = createStore('gloamrun');
+const SLUG = 'gloamrun';
+
+/**
+ * TURN, fetched once at boot and installed BEFORE any mesh exists on the page.
+ *
+ * Trystero pre-builds a single global pool of peer connections from the config
+ * of whichever joinRoom fires first, so a mesh created before this lands is
+ * STUN-only for its initiating half — for good, and invisibly, since the other
+ * half still works. A phone on carrier CGNAT then sits in the right room code
+ * seeing nobody. The fetch is session-cached and fails open to [] after 3s, so
+ * awaiting it can delay a join but can never block one.
+ */
+const turnReady: Promise<void> = getTurnConfig().then(setTurnConfig);
+
+const store = createStore(SLUG);
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 const DELVER_NAMES = ['Ash', 'Wren', 'Kesh', 'Bramble', 'Nix', 'Fen', 'Rook', 'Vale'];
@@ -222,19 +237,30 @@ function showRoomEntry(): void {
   shell('<div class="screen" id="entry"></div>');
   createRoomEntry({
     container: app.querySelector<HTMLElement>('#entry')!,
-    onSubmit: (code, created) => enterRoom(normalizeRoomCode(code), created),
+    onSubmit: (code, created) => void enterRoom(normalizeRoomCode(code), created),
     onCancel: showMenu,
     subtitle: `Start a room and share the code, or type a friend's. Up to ${MAX_PLAYERS} delvers.`,
   });
 }
 
-function enterRoom(code: string, created: boolean): void {
-  teardownRoom();
+/** Bumped on every room entry/teardown, so a slow TURN fetch cannot resurrect a
+ *  room the player already backed out of. */
+let roomToken = 0;
+
+async function enterRoom(code: string, created: boolean): Promise<void> {
+  teardownRoom(); // bumps roomToken, invalidating any join still awaiting TURN
+  const token = roomToken;
   roomCode = code;
   setRoomInUrl(code);
 
+  // The mesh must not exist until TURN is installed, so hold the screen rather
+  // than joining turnless. Normally instant — the credential is session-cached.
+  shell('<div class="screen connecting"><span class="spinner"></span> Opening the gate…</div>');
+  await turnReady;
+  if (token !== roomToken) return;
+
   net = createNet(
-    { appId: 'gloamrun', roomId: code, claimHost: created },
+    { appId: roomAppId(SLUG), roomId: code, claimHost: created },
     {
       onHostChange: (_id, isSelfHost) => {
         session?.setHost(isSelfHost);
@@ -745,6 +771,7 @@ async function share(text: string): Promise<void> {
 // ── teardown ────────────────────────────────────────────────────────────────
 
 function teardownRoom(): void {
+  roomToken++;
   cleanupGame?.();
   cleanupGame = null;
   cleanupLobby?.();
@@ -774,7 +801,7 @@ const deep = url.searchParams.get('room');
 if (deep && !deepLinkUsed) {
   deepLinkUsed = true;
   const code = normalizeRoomCode(deep);
-  if (code.length >= 3) enterRoom(code, false);
+  if (code.length >= 3) void enterRoom(code, false);
   else showMenu();
 } else {
   showMenu();

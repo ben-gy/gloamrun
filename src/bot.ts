@@ -13,7 +13,7 @@
 
 import { Game, type Hero, type Monster } from './game';
 import { UPGRADES, type Upgrade } from './upgrades';
-import type { Rng } from './engine/rng';
+import type { Rng } from '@ben-gy/game-engine/rng';
 
 export interface Intent {
   ax: number;
