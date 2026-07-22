@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Descend the gloam together — a co-op dungeon crawler over peer-to-peer WebRTC.",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
